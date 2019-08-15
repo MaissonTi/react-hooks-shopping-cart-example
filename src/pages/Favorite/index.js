@@ -1,26 +1,22 @@
 /* eslint no-param-reassign: "error" */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { FaSpinner, MdStar } from 'react-icons/all';
-
+import { MdStar } from 'react-icons/all';
 import { MdAddShoppingCart } from 'react-icons/md';
 import Container from '../../components/Container';
-import { ComicList, Loading, Button, Star } from './styles';
+import { ComicList, Button, Star } from './styles';
 
 import { formatPrice } from '../../util/format';
-
-import api from '../../services/api';
-import KeyMarvel from '../../services/keymarvel';
 
 import * as CardActions from '../../store/modules/cart/actions';
 import * as FavoriteActions from '../../store/modules/favorite/actions';
 
+import json from '../../services/jsonApiMarvel';
+
 export default function Favorite() {
   const [comics, setComics] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const favorite = useSelector(state => state.favorite);
-
   const amount = useSelector(state =>
     state.cart.reduce((sumAmount, item) => {
       sumAmount[item.id] = item.amount;
@@ -32,23 +28,16 @@ export default function Favorite() {
 
   useEffect(() => {
     async function load() {
-      const result = await Promise.all(
-        favorite.map(item => {
-          return api.get(`/comics`, {
-            params: {
-              ...KeyMarvel.getApiParams(),
-              id: item,
-            },
-          });
-        })
-      );
+      const result = favorite.map(id => {
+        return json.data.filter(item => item.id === id)[0];
+      });
 
+      // FormatPrice
       const data = result.map(comic => ({
-        ...comic.data.data.results[0],
-        priceFormat: formatPrice(comic.data.data.results[0].prices[0].price),
+        ...comic,
+        priceFormat: formatPrice(comic.prices[0].price),
       }));
 
-      setLoading(false);
       setComics(data);
     }
     load();
@@ -67,12 +56,6 @@ export default function Favorite() {
 
   return (
     <Container>
-      {!loading || (
-        <Loading>
-          <FaSpinner size={50} />
-        </Loading>
-      )}
-
       <ComicList>
         {comics.map(item => (
           <li key={item.id}>
@@ -82,9 +65,7 @@ export default function Favorite() {
             />
             <strong>{item.title}</strong>
             <Star>
-              <span>
-                {item.priceFormat} {item.color}
-              </span>
+              <span>{item.priceFormat}</span>
               <MdStar onClick={() => handleStarComic(item)} size={25} />
             </Star>
 
